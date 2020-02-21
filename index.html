@@ -1,1 +1,131 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="shortcut icon" href="/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no"/><meta name="theme-color" content="#000000"/><link rel="manifest" href="/manifest.json"/><title>Sentree WhatIf tool</title><link href="/static/css/main.2e1eda55.chunk.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div><script>!function(l){function e(e){for(var r,t,n=e[0],o=e[1],u=e[2],f=0,i=[];f<n.length;f++)t=n[f],p[t]&&i.push(p[t][0]),p[t]=0;for(r in o)Object.prototype.hasOwnProperty.call(o,r)&&(l[r]=o[r]);for(s&&s(e);i.length;)i.shift()();return c.push.apply(c,u||[]),a()}function a(){for(var e,r=0;r<c.length;r++){for(var t=c[r],n=!0,o=1;o<t.length;o++){var u=t[o];0!==p[u]&&(n=!1)}n&&(c.splice(r--,1),e=f(f.s=t[0]))}return e}var t={},p={1:0},c=[];function f(e){if(t[e])return t[e].exports;var r=t[e]={i:e,l:!1,exports:{}};return l[e].call(r.exports,r,r.exports,f),r.l=!0,r.exports}f.m=l,f.c=t,f.d=function(e,r,t){f.o(e,r)||Object.defineProperty(e,r,{enumerable:!0,get:t})},f.r=function(e){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},f.t=function(r,e){if(1&e&&(r=f(r)),8&e)return r;if(4&e&&"object"==typeof r&&r&&r.__esModule)return r;var t=Object.create(null);if(f.r(t),Object.defineProperty(t,"default",{enumerable:!0,value:r}),2&e&&"string"!=typeof r)for(var n in r)f.d(t,n,function(e){return r[e]}.bind(null,n));return t},f.n=function(e){var r=e&&e.__esModule?function(){return e.default}:function(){return e};return f.d(r,"a",r),r},f.o=function(e,r){return Object.prototype.hasOwnProperty.call(e,r)},f.p="/";var r=window.webpackJsonp=window.webpackJsonp||[],n=r.push.bind(r);r.push=e,r=r.slice();for(var o=0;o<r.length;o++)e(r[o]);var s=n;a()}([])</script><script src="/static/js/2.36198c0e.chunk.js"></script><script src="/static/js/main.c67b2eee.chunk.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+
+
+    <video id="video" autoplay style="display:none"></video>
+    <canvas id="videoCanvas" width="640", height="480" style="display:none;"></canvas>
+    <canvas id="asciiCanvas" width="640", height="480"></canvas>
+    <hr>
+    Resolution:
+    <input type="range" id="resolution" min="8" max="18" value="11" step="1" oninput="window.fontSizeParam=this.value"><br>
+    Matrix mode:
+    <input type="checkbox" onclick="window.matrix = !window.matrix"><br>
+
+    
+    <script>
+    function mean(list){
+        return list.reduce((a,b) => a+b, 0) / list.length;
+    }
+
+    function randInt(i,j){
+        return Math.floor(Math.random()*(j-i) + i);
+    }
+
+    window.video = document.querySelector('video');
+    window.vCanvas = document.querySelector('#videoCanvas');
+    window.aCanvas = document.querySelector('#asciiCanvas');
+    window.vctx = vCanvas.getContext("2d");
+    window.actx = aCanvas.getContext("2d");
+
+    window.fontSizeParam = 11;
+
+    let asciiChars = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
+
+    navigator.mediaDevices.getUserMedia({video: true}).
+        then((stream) => {video.srcObject = stream});
+    
+    function printToCanvas(){
+        vctx.drawImage(video, 0,0, vCanvas.width, vCanvas.height);
+        requestAnimationFrame(printToCanvas);
+    }
+    printToCanvas();
+
+
+    function intToHex(number) {
+        let h = number.toString(16).toUpperCase();
+        if(String(h).length == 1){
+            return `0${h}`;
+        }
+        return h;
+    }
+
+    // writes ascii to aCanvas using vCanvas as the source image
+    function videoToAscii(){
+        actx.font = `${fontSizeParam}px monospace`
+        window.fontHeight = fontSizeParam - 1;
+        window.fontWidth = fontSizeParam - 1;
+
+        actx.fillStyle = "#000"
+        actx.fillRect(0,0, aCanvas.width, aCanvas.height);
+        
+        // get image
+        let image = vctx.getImageData(0,0, vCanvas.width,vCanvas.height);
+        let w = image.width;
+        let h = image.height;
+        let data = image.data;
+
+        function getColor(i, j, data){
+            if(window.matrix){
+                return [0,255,0];
+            }
+
+            let rs = [];
+            let gs = [];
+            let bs = [];
+
+            for(let trial=0; trial<5; trial++){
+                let xOffset = randInt(0, fontWidth);
+                let yOffset = randInt(0, fontHeight);
+
+                rs.push(data[((i+yOffset)*w + (j+xOffset))*4]);
+                gs.push(data[((i+yOffset)*w + (j+xOffset))*4 + 1]);
+                bs.push(data[((i+yOffset)*w + (j+xOffset))*4 + 2]);
+            }
+
+            return [Math.floor(mean(rs)), Math.floor(mean(gs)), Math.floor(mean(bs))];
+            // return [0,255,0];
+        }
+
+        function getBrightness(i, j, data){
+            let brightnesses = [];
+
+            for(let trial=0; trial<10; trial++){
+                let xOffset = randInt(0, fontWidth);
+                let yOffset = randInt(0, fontHeight);
+                let r = data[((i+yOffset)*w + (j+xOffset))*4] / 255.0;
+                let g = data[((i+yOffset)*w + (j+xOffset))*4 + 1] / 255.0;
+                let b = data[((i+yOffset)*w + (j+xOffset))*4 + 2] / 255.0;
+
+                let brightness = (r + g + b)/3.01;
+                brightnesses.push(brightness);
+            }
+
+            return 1.0 - mean(brightnesses); // on a white background this should be flipped.
+        }
+
+        for(let i=0; i<h; i += fontHeight){
+            for(let j=0; j<w; j += fontWidth){
+                let [r,g,b] = getColor(i,j,data);
+                let brightness = getBrightness(i,j,data);
+                let charIndex = Math.floor(brightness * asciiChars.length);
+                let char = asciiChars[charIndex] || " ";
+                
+                actx.fillStyle = `#${intToHex(r)}${intToHex(g)}${intToHex(b)}`;
+                actx.fillText(char, aCanvas.width - j,i);
+            }
+        }
+    }
+
+    setInterval(videoToAscii, 1000 / 20);
+    videoToAscii();
+    </script>
+
+
+</body>
+</html>
